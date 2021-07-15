@@ -6199,7 +6199,7 @@ static int test_key_update_peer_in_write(int tst)
  * had been read 5 bytes).
  * Test 0: Client sends KeyUpdate while Server is reading
  * Test 1: Server sends KeyUpdate while Client is reading
-*/
+ */
 static int test_key_update_peer_in_read(int tst)
 {
     SSL_CTX *cctx = NULL, *sctx = NULL;
@@ -6232,7 +6232,9 @@ static int test_key_update_peer_in_read(int tst)
 
     /*
      * we first write keyupdate msg then appdata in local
-     * write data in local will fail with SSL_ERROR_WANT_WRITE
+     * write data in local will fail with SSL_ERROR_WANT_WRITE,because
+     * lwbuf app data msg size + key updata msg size > 512(the size of
+     * the bio pair buffer)
      */
     if (!TEST_true(SSL_key_update(local, SSL_KEY_UPDATE_REQUESTED))
             || !TEST_int_eq(SSL_write(local, lwbuf, sizeof(lwbuf)), -1)
@@ -6335,7 +6337,7 @@ static int test_key_update_local_in_write(int tst)
     if (!TEST_int_eq(SSL_write(local, mess, strlen(mess)), strlen(mess)))
         goto end;
 
-    /* SSL_key_update will sucess, write data previously already complete */
+    /* SSL_key_update will succeed because there is no pending write data */
     if (!TEST_true(SSL_key_update(local, SSL_KEY_UPDATE_REQUESTED))
         || !TEST_int_eq(SSL_do_handshake(local), 1))
         goto end;
@@ -6348,7 +6350,7 @@ static int test_key_update_local_in_write(int tst)
         || !TEST_int_eq(SSL_read(peer, buf, sizeof(buf)), strlen(mess)))
         goto end;
 
-    /* Write in peer more data to ensure we send the keyupdate message back */
+    /* Write more peer more data to ensure we send the keyupdate message back */
     if (!TEST_int_eq(SSL_write(peer, mess, strlen(mess)), strlen(mess))
             || !TEST_int_eq(SSL_read(local, buf, sizeof(buf)), strlen(mess)))
         goto end;
@@ -6433,7 +6435,7 @@ static int test_key_update_local_in_read(int tst)
         || !TEST_int_eq(SSL_read(peer, prbuf, sizeof(prbuf)), strlen(mess)))
         goto end;
 
-  /* Write in peer more data to ensure we send the keyupdate message back */
+  /* Write more peer data to ensure we send the keyupdate message back */
     if (!TEST_int_eq(SSL_write(peer, mess, strlen(mess)), strlen(mess))
             || !TEST_int_eq(SSL_read(local, lrbuf, sizeof(lrbuf)), strlen(mess)))
         goto end;
